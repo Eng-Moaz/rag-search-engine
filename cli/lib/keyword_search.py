@@ -1,4 +1,4 @@
-from .search_utils import load_movies
+from .search_utils import load_movies, load_stopwords
 import string
 
 def clean(query:str):
@@ -12,6 +12,13 @@ def tokenize(query:str):
     tokens = clean_query.split()
     return tokens
 
+def remove_stopwords(tokenized_text):
+    stopwords = load_stopwords()
+    for stopword in stopwords:
+        if stopword in tokenized_text:
+            tokenized_text.remove(stopword)
+    return tokenized_text
+
 def matching_movie(tokenized_query,tokenized_movie_title)-> bool:
     for query_token in tokenized_query:
         for movie_title_token in tokenized_movie_title:
@@ -22,9 +29,9 @@ def matching_movie(tokenized_query,tokenized_movie_title)-> bool:
 def search_query(query:str,num_limit=5):
     movies = load_movies()
     result = []
-    tokenized_query = tokenize(query)
+    tokenized_query = remove_stopwords(tokenize(query))
     for movie in movies:
-        tokenized_movie_title = tokenize(movie["title"])
+        tokenized_movie_title = remove_stopwords(tokenize(movie["title"]))
         if matching_movie(tokenized_query,tokenized_movie_title):
             result.append(movie)
         if len(result) == num_limit:
