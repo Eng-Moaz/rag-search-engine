@@ -1,4 +1,5 @@
 from .search_utils import load_movies, load_stopwords
+from nltk.stem import PorterStemmer
 import string
 
 def clean(query:str):
@@ -14,10 +15,9 @@ def tokenize(query:str):
 
 def remove_stopwords(tokenized_text):
     stopwords = load_stopwords()
-    for stopword in stopwords:
-        if stopword in tokenized_text:
-            tokenized_text.remove(stopword)
-    return tokenized_text
+    stemmer = PorterStemmer()
+    clean_tokens = [stemmer.stem(word) for word in tokenized_text if word not in stopwords]
+    return clean_tokens
 
 def matching_movie(tokenized_query,tokenized_movie_title)-> bool:
     for query_token in tokenized_query:
