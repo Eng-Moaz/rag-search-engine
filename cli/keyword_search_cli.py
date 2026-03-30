@@ -12,11 +12,10 @@ def main() -> None:
 
     match args.command:
         case "search":
-            # print the search query here
             print(f"Searching for: {args.query}")
             results = search_query(args.query)
             for movie in results:
-                print(movie)
+                print(movie["title"])
 
         case _:
             parser.print_help()

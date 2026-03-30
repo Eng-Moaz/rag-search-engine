@@ -1,23 +1,32 @@
 from .search_utils import load_movies
 import string
 
-def tokenize(query:str):
+def clean(query:str):
     query = query.lower()
     removing_table = str.maketrans("","",string.punctuation)
     clean_query = query.translate(removing_table)
+    return clean_query
+
+def tokenize(query:str):
+    clean_query = clean(query)
     tokens = clean_query.split()
     return tokens
 
+def matching_movie(tokenized_query,tokenized_movie_title)-> bool:
+    for query_token in tokenized_query:
+        for movie_title_token in tokenized_movie_title:
+            if query_token in movie_title_token:
+                return True
+    return False
 
 def search_query(query:str,num_limit=5):
     movies = load_movies()
     result = []
-    query_tokens = tokenize(query)
+    tokenized_query = tokenize(query)
     for movie in movies:
-        movie_title = movie["title"]
-        tokenized_movie_title = tokenize(movie_title)
-        for query_token in query_tokens:
-            for movie_token in tokenized_movie_title:
-                if movie_title not in result and query_token in movie_token:
-                    result.append(movie_title)
+        tokenized_movie_title = tokenize(movie["title"])
+        if matching_movie(tokenized_query,tokenized_movie_title):
+            result.append(movie)
+        if len(result) == num_limit:
+            break
     return result
