@@ -1,5 +1,6 @@
 # Project data
 data/
+cache/
 
 # Python-generated files
 __pycache__/
@@ -8,6 +9,7 @@ build/
 dist/
 wheels/
 *.egg-info
+.idea
 
 # Virtual environments
 .venv
