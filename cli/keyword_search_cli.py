@@ -1,5 +1,5 @@
 import argparse
-from lib.keyword_search import search_query
+import sys
 from lib.inverted_index import InvertedIndex
 
 def main() -> None:
@@ -14,10 +14,16 @@ def main() -> None:
 
     match args.command:
         case "search":
-            print(f"Searching for: {args.query}")
-            results = search_query(args.query)
-            for movie in results:
-                print(movie["title"])
+            inverted_index = InvertedIndex()
+            try:
+                inverted_index.load()
+            except FileNotFoundError:
+                print("File not found, Run the build command first")
+                sys.exit(1)
+            retrieved = inverted_index.retrieve(args.query)
+            for movie in retrieved:
+                print(f"{movie['title']} ({movie['id']})")
+
         case "build":
             inverted_index = InvertedIndex()
             inverted_index.build()
@@ -25,6 +31,7 @@ def main() -> None:
 
             docs = inverted_index.get_documents("merida")
             print(f"First document for token 'merida' = {docs[0]}")
+
         case _:
             parser.print_help()
 
