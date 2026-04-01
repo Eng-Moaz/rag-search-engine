@@ -1,18 +1,22 @@
 from .keyword_search import tokenize, remove_stopwords
 from .search_utils import load_movies
-from collections import defaultdict
+from collections import defaultdict, Counter
 import pickle
 import os
+import math
+
 
 class InvertedIndex:
     def __init__(self):
         self.index = defaultdict(set)
         self.docmap = {}
+        self.term_frequencies = defaultdict(Counter)
 
     def __add_document(self, doc_id, text):
         tokens = remove_stopwords(tokenize(text))
         for token in tokens:
             self.index[token].add(doc_id)
+        self.term_frequencies[doc_id].update(tokens)
 
     def get_documents(self, term):
         ids = sorted(self.index[term.lower()])
@@ -31,12 +35,16 @@ class InvertedIndex:
             pickle.dump(self.index,file)
         with open("cache/docmap.pkl","wb") as file:
             pickle.dump(self.docmap,file)
+        with open("cache/term_frequencies.pkl","wb") as file:
+            pickle.dump(self.term_frequencies,file)
 
     def load(self):
         with open("cache/index.pkl","rb") as file:
             self.index = pickle.load(file)
         with open("cache/docmap.pkl", "rb") as file:
             self.docmap = pickle.load(file)
+        with open("cache/term_frequencies.pkl", "rb") as file:
+            self.term_frequencies = pickle.load(file)
 
     def retrieve(self, query: str, num_limit=5):
         indices = []
@@ -53,3 +61,15 @@ class InvertedIndex:
         for index in indices:
             result.append(self.docmap[index])
         return result
+
+    def get_tf(self,doc_id,term):
+        tokenized_term = remove_stopwords(tokenize(term))
+        if len(tokenized_term) != 1:
+            raise ValueError("Term must be a single token after processing.")
+        return self.term_frequencies[doc_id][tokenized_term[0]]
+
+    def get_idf(self,term):
+        term = remove_stopwords(tokenize(term))[0]
+        total_docs, term_docs = len(self.docmap), len(self.get_documents(term))
+        idf = math.log((total_docs + 1) / (term_docs + 1))
+        return idf
