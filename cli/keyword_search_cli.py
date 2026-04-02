@@ -1,6 +1,6 @@
 import argparse
-import sys
-from lib.inverted_index import InvertedIndex
+from lib.cli_commands import CliCommands
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -18,50 +18,34 @@ def main() -> None:
     idf = subparsers.add_parser("idf", help="Inverse document frequency")
     idf.add_argument("term", type=str)
 
-    idf = subparsers.add_parser("tfidf", help="TF-IDF")
-    idf.add_argument("doc_id", type=int, help="document ID")
-    idf.add_argument("term", type=str)
+    tfidf = subparsers.add_parser("tfidf", help="TF-IDF")
+    tfidf.add_argument("doc_id", type=int, help="document ID")
+    tfidf.add_argument("term", type=str)
+
+    bm25_idf = subparsers.add_parser("bm25idf", help="Get BM25 IDF score for a given term")
+    bm25_idf.add_argument("term", type=str, help="Term to get BM25 IDF score for")
 
     args = parser.parse_args()
-
-    def _load_inverted_index():
-        inverted_index = InvertedIndex()
-        try:
-            inverted_index.load()
-        except FileNotFoundError:
-            print("File not found, Run the build command first")
-            sys.exit(1)
-        return inverted_index
-
+    CLI = CliCommands()
     match args.command:
         case "search":
-            inverted_index = _load_inverted_index()
-            retrieved = inverted_index.retrieve(args.query)
-            for movie in retrieved:
-                print(f"{movie['title']} ({movie['id']})")
+            CLI.search_command(args.query)
 
         case "build":
-            inverted_index = InvertedIndex()
-            inverted_index.build()
-            inverted_index.save()
-
-            docs = inverted_index.get_documents("merida")
-            print(f"First document for token 'merida' = {docs[0]}")
+            CLI.build_command()
 
         case "tf":
-            inverted_index = _load_inverted_index()
-            print(inverted_index.get_tf(args.doc_id,args.term))
+            CLI.tf_command(args.doc_id,args.term)
 
         case "idf":
-            inverted_index = _load_inverted_index()
-            idf = inverted_index.get_idf(args.term)
-            print(f"Inverse document frequency of '{args.term}': {idf:.2f}")
+            CLI.idf_command(args.term)
 
         case "tfidf":
-            inverted_index = _load_inverted_index()
-            tf_idf = inverted_index.get_tf_idf(args.doc_id,args.term)
-            print(f"TF-IDF score of '{args.term}' in document '{args.doc_id}': {tf_idf:.2f}")
+            CLI.tfidf_command(args.doc_id, args.term)
 
+        case "bm25idf":
+            bm25idf = CLI.bm25_idf_command(args.term)
+            print(f"BM25 IDF score of '{args.term}': {bm25idf:.2f}")
         case _:
             parser.print_help()
 

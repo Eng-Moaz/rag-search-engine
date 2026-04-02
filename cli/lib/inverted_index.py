@@ -11,6 +11,7 @@ class InvertedIndex:
         self.index = defaultdict(set)
         self.docmap = {}
         self.term_frequencies = defaultdict(Counter)
+        self.bm25_k1 = 1.5
 
     def __add_document(self, doc_id, text):
         tokens = remove_stopwords(tokenize(text))
@@ -76,3 +77,11 @@ class InvertedIndex:
 
     def get_tf_idf(self,doc_id,term):
         return self.get_idf(term)*self.get_tf(doc_id,term)
+
+    def get_bm25_idf(self, term: str) -> float:
+        tokenized_term = remove_stopwords(tokenize(term))
+        if len(tokenized_term) != 1:
+            raise ValueError("Term must be a single token after processing.")
+        total_docs, term_docs = len(self.docmap), len(self.get_documents(tokenized_term[0]))
+        bm25 = math.log((total_docs - term_docs + 0.5) / (term_docs + 0.5) + 1)
+        return bm25
