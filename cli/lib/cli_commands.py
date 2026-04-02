@@ -43,3 +43,8 @@ class CliCommands:
     def bm25_idf_command(self,term):
         inverted_index = self._load_inverted_index()
         return inverted_index.get_bm25_idf(term)
+
+    def bm25_command(self,doc_id,term,k1):
+        inverted_index = self._load_inverted_index()
+        bm25_tf = inverted_index.get_bm25_tf(doc_id, term, k1)
+        return bm25_tf

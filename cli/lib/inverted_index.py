@@ -5,13 +5,13 @@ import pickle
 import os
 import math
 
+BM25_K1 = 1.5
 
 class InvertedIndex:
     def __init__(self):
         self.index = defaultdict(set)
         self.docmap = {}
         self.term_frequencies = defaultdict(Counter)
-        self.bm25_k1 = 1.5
 
     def __add_document(self, doc_id, text):
         tokens = remove_stopwords(tokenize(text))
@@ -85,3 +85,8 @@ class InvertedIndex:
         total_docs, term_docs = len(self.docmap), len(self.get_documents(tokenized_term[0]))
         bm25 = math.log((total_docs - term_docs + 0.5) / (term_docs + 0.5) + 1)
         return bm25
+
+    def get_bm25_tf(self, doc_id, term, k1=BM25_K1):
+        tf = self.get_tf(doc_id,term)
+        sat_tf = (tf * (k1 + 1)) / (tf + k1)
+        return sat_tf
