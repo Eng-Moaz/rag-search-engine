@@ -30,6 +30,7 @@ def main() -> None:
     bm25_tf_parser.add_argument("doc_id", type=int, help="Document ID")
     bm25_tf_parser.add_argument("term", type=str, help="Term to get BM25 TF score for")
     bm25_tf_parser.add_argument("k1", type=float, nargs='?', default=inverted_index.BM25_K1, help="Tunable BM25 K1 parameter")
+    bm25_tf_parser.add_argument("b", type=float, nargs='?', default=inverted_index.BM25_B, help="Tunable BM25 b parameter")
 
     args = parser.parse_args()
     CLI = CliCommands()
@@ -50,12 +51,10 @@ def main() -> None:
             CLI.tfidf_command(args.doc_id, args.term)
 
         case "bm25idf":
-            bm25idf = CLI.bm25_idf_command(args.term)
-            print(f"BM25 IDF score of '{args.term}': {bm25idf:.2f}")
+            CLI.bm25_idf_command(args.term)
 
         case "bm25tf":
-            bm25tf = CLI.bm25_command(args.doc_id, args.term, args.k1)
-            print(f"BM25 TF score of '{args.term}' in document '{args.doc_id}': {bm25tf:.2f}")
+            CLI.bm25_command(args.doc_id, args.term, args.k1, args.b)
 
         case _:
             parser.print_help()
