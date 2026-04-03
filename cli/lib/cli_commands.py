@@ -45,7 +45,13 @@ class CliCommands:
         bm25idf = inverted_index.get_bm25_idf(term)
         print(f"BM25 IDF score of '{term}': {bm25idf:.2f}")
 
-    def bm25_command(self,doc_id,term,k1,b):
+    def bm25_tf_command(self,doc_id,term,k1,b):
         inverted_index = self._load_inverted_index()
         bm25tf = inverted_index.get_bm25_tf(doc_id, term, k1,b)
         print(f"BM25 TF score of '{term}' in document '{doc_id}': {bm25tf:.2f}")
+
+    def bm25_command(self, query, limit=5):
+        inverted_index = self._load_inverted_index()
+        bm25 = inverted_index.bm25_search(query, limit)
+        for doc_id, doc, score in bm25:
+            print(f"({doc_id}) {doc["title"]} - Score: {score:.2f}")

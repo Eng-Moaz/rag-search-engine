@@ -2,6 +2,7 @@ import argparse
 from lib.cli_commands import CliCommands
 from lib import inverted_index
 
+CLI = CliCommands()
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -32,8 +33,11 @@ def main() -> None:
     bm25_tf_parser.add_argument("k1", type=float, nargs='?', default=inverted_index.BM25_K1, help="Tunable BM25 K1 parameter")
     bm25_tf_parser.add_argument("b", type=float, nargs='?', default=inverted_index.BM25_B, help="Tunable BM25 b parameter")
 
+    bm25search_parser = subparsers.add_parser("bm25search", help="Search movies using full BM25 scoring")
+    bm25search_parser.add_argument("query", type=str, help="Search query")
+
     args = parser.parse_args()
-    CLI = CliCommands()
+
     match args.command:
         case "search":
             CLI.search_command(args.query)
@@ -55,6 +59,9 @@ def main() -> None:
 
         case "bm25tf":
             CLI.bm25_command(args.doc_id, args.term, args.k1, args.b)
+
+        case "bm25search":
+            CLI.bm25_command(args.query)
 
         case _:
             parser.print_help()
