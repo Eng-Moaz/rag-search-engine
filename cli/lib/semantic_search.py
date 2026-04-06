@@ -23,6 +23,13 @@ def verify_embeddings():
     print(f"Number of docs:   {len(documents)}")
     print(f"Embeddings shape: {embeddings.shape[0]} vectors in {embeddings.shape[1]} dimensions")
 
+def embed_query_text(query):
+    semantic_search = SemanticSsearch()
+    embedding = semantic_search.generate_embedding(query)
+    print(f"Query: {query}")
+    print(f"First 3 dimensions: {embedding[:3]}")
+    print(f"Shape: {embedding.shape}")
+
 
 class SemanticSsearch:
     def __init__(self):
@@ -33,9 +40,12 @@ class SemanticSsearch:
         self.embeddings_path = Path("cache/movie_embeddings.npy")
 
     def generate_embedding(self, text):
-        if text == "" or text is None:
-            raise ValueError("The text is empty or doesn't exist")
-        encoded_text = self.model.encode([text])
+        if text is None:
+            raise ValueError("The text doesn't exist")
+        clean_text = text.strip()
+        if clean_text == "":
+            raise ValueError("The text is empty")
+        encoded_text = self.model.encode([clean_text])
         return encoded_text[0]
 
     def build_embeddings(self, documents):
