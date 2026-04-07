@@ -36,7 +36,7 @@ cli/
     keyword_search.py      # Text cleaning, tokenization, stopword removal, stemming
     inverted_index.py      # Inverted index with TF, IDF, TF-IDF, and BM25
     semantic_search.py     # Embedding generation and cosine similarity search
-    cli_commands.py        # Command handlers for the keyword search CLI
+    keyword_cli_commands.py        # Command handlers for the keyword search CLI
     semantic_cli_commands.py  # Command handlers for the semantic search CLI
 cache/                     # Serialized index and embeddings (gitignored)
 data/                      # Movie dataset and stopwords (gitignored)
