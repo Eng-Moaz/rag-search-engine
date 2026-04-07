@@ -1,7 +1,7 @@
 import sys
 from .inverted_index import InvertedIndex
 
-class CliCommands:
+class KeywordCliCommands:
 
     def _load_inverted_index(self):
         inverted_index = InvertedIndex()
@@ -54,4 +54,4 @@ class CliCommands:
         inverted_index = self._load_inverted_index()
         bm25 = inverted_index.bm25_search(query, limit)
         for doc_id, doc, score in bm25:
-            print(f"({doc_id}) {doc["title"]} - Score: {score:.2f}")
+            print(f"({doc_id}) {doc['title']} - Score: {score:.2f}")

@@ -1,39 +1,43 @@
 import argparse
-from lib.semantic_search import (
-    verify_model, embed_text, verify_embeddings, embed_query_text
-    )
+from lib.semantic_cli_commands import SemanticCliCommands
 
+CLI = SemanticCliCommands()
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Semantic Search CLI")
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
-    subparsers = parser.add_subparsers(dest="command", required=True)
-
-    subparsers.add_parser("verify", help="verifies that the embedding model is loaded successfully")
+    subparsers.add_parser("verify", help="Verifies that the embedding model is loaded successfully")
 
     embed_text_parser = subparsers.add_parser("embed_text", help="Embed a given text using an embedding model")
     embed_text_parser.add_argument("text", type=str, help="The intended text to be embedded")
 
-    subparsers.add_parser("verify_embeddings", help="create or load embeddings and verify them")
+    subparsers.add_parser("verify_embeddings", help="Create or load embeddings and verify them")
 
-    embedquery = subparsers.add_parser("embedquery", help="embeds the given query")
-    embedquery.add_argument("query", type=str, help="query to be embedded")
+    embedquery = subparsers.add_parser("embedquery", help="Embeds the given query")
+    embedquery.add_argument("query", type=str, help="Query to be embedded")
 
+    search = subparsers.add_parser("search", help="Uses semantic search to retrieve documents")
+    search.add_argument("query", type=str, help="Query to be searched for")
+    search.add_argument("--limit", type=int, default=5, help="Limit for retrieved documents")
 
     args = parser.parse_args()
 
     match args.command:
         case "verify":
-            verify_model()
+            CLI.verify_command()
 
         case "embed_text":
-            embed_text(args.text)
+            CLI.embed_text_command(args.text)
 
         case "verify_embeddings":
-            verify_embeddings()
+            CLI.verify_embeddings_command()
 
         case "embedquery":
-            embed_query_text(args.query)
+            CLI.embed_query_command(args.query)
+
+        case "search":
+            CLI.search_command(args.query, args.limit)
 
         case _:
             parser.print_help()

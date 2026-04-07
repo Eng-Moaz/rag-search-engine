@@ -1,8 +1,8 @@
 import argparse
-from lib.cli_commands import CliCommands
+from lib.cli_commands import KeywordCliCommands
 from lib import inverted_index
 
-CLI = CliCommands()
+CLI = KeywordCliCommands()
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -58,7 +58,7 @@ def main() -> None:
             CLI.bm25_idf_command(args.term)
 
         case "bm25tf":
-            CLI.bm25_command(args.doc_id, args.term, args.k1, args.b)
+            CLI.bm25_tf_command(args.doc_id, args.term, args.k1, args.b)
 
         case "bm25search":
             CLI.bm25_command(args.query)
