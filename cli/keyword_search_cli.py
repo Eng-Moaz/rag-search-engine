@@ -1,5 +1,5 @@
 import argparse
-from lib.cli_commands import KeywordCliCommands
+from lib.keyword_cli_commands import KeywordCliCommands
 from lib import inverted_index
 
 CLI = KeywordCliCommands()
