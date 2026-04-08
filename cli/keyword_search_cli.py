@@ -2,7 +2,6 @@ import argparse
 from lib.keyword_cli_commands import KeywordCliCommands
 from lib import inverted_index
 
-CLI = KeywordCliCommands()
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -37,6 +36,8 @@ def main() -> None:
     bm25search_parser.add_argument("query", type=str, help="Search query")
 
     args = parser.parse_args()
+
+    CLI = KeywordCliCommands()
 
     match args.command:
         case "search":

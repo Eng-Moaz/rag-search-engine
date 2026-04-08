@@ -1,7 +1,6 @@
 import argparse
 from lib.semantic_cli_commands import SemanticCliCommands
 
-CLI = SemanticCliCommands()
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Semantic Search CLI")
@@ -21,7 +20,13 @@ def main() -> None:
     search.add_argument("query", type=str, help="Query to be searched for")
     search.add_argument("--limit", type=int, default=5, help="Limit for retrieved documents")
 
+    chunk = subparsers.add_parser("chunk", help="Chunk the documents")
+    chunk.add_argument("text", type=str, help="text to be chunked")
+    chunk.add_argument("--chunk-size", type=int, default=200, help="Size of the chunked documents")
+
     args = parser.parse_args()
+
+    CLI = SemanticCliCommands()
 
     match args.command:
         case "verify":
@@ -38,6 +43,9 @@ def main() -> None:
 
         case "search":
             CLI.search_command(args.query, args.limit)
+
+        case "chunk":
+            CLI.chunk_command(args.text, args.chunk_size)
 
         case _:
             parser.print_help()
