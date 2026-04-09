@@ -1,5 +1,6 @@
 from .semantic_search import SemanticSearch
 from .search_utils import load_movies
+import re
 
 
 class SemanticCliCommands:
@@ -43,14 +44,34 @@ class SemanticCliCommands:
             print(f"{i+1}. {result['title']} (score: {result['score']:.4f})")
             print(f"{result['description'][:100]}")
 
-    def chunk_command(self, text, chunk_size):
+    def chunk_command(self, text, chunk_size, overlap):
         words = text.split()
+        step_size = chunk_size - overlap
         chunks = []
-        for i in range(0,len(words),chunk_size):
+        for i in range(0,len(words),step_size):
            chunk_words = words[i:chunk_size+i]
+           if len(chunk_words) >= overlap:
+               break
            chunk = " ".join(chunk_words)
            chunks.append(chunk)
 
         print(f"Chunking {len(text)} characters")
         for i, chunk in enumerate(chunks):
             print(f"{i+1}. {chunk}")
+
+    def semantic_chunk_command(self, text, max_size_chunk, overlap):
+        pattern =  r"(?<=[.!?])\s+"
+        sentences = re.split(pattern, text.strip())
+        step_size = max_size_chunk - overlap
+        chunks = []
+
+        for i in range(0, len(sentences), step_size):
+            chunk_sentences = sentences[i: i + max_size_chunk]
+            chunk = " ".join(chunk_sentences)
+            chunks.append(chunk)
+            if i + max_size_chunk >= len(sentences):
+                break
+
+        print(f"Semantically chunking {len(text)} characters")
+        for i, chunk in enumerate(chunks):
+            print(f"{i + 1}. {chunk}")
