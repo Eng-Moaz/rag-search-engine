@@ -1,4 +1,4 @@
-from .semantic_search import SemanticSearch
+from .semantic_search import SemanticSearch, ChunkedSemanticSearch
 from .search_utils import load_movies
 import re
 
@@ -75,3 +75,9 @@ class SemanticCliCommands:
         print(f"Semantically chunking {len(text)} characters")
         for i, chunk in enumerate(chunks):
             print(f"{i + 1}. {chunk}")
+
+    def embed_chunks_command(self):
+        movies = load_movies()
+        chunked_semantic_search = ChunkedSemanticSearch()
+        embeddings = chunked_semantic_search.load_or_create_chunk_embeddings(movies)
+        print(f"Generated {len(embeddings)} chunked embeddings")
