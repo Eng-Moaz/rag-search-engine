@@ -6,6 +6,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 CACHE_DIR = PROJECT_ROOT / "cache"
+SCORE_PRECISION = 4
 
 
 def cosine_similarity(vec1, vec2):
@@ -110,7 +111,7 @@ class ChunkedSemanticSearch(SemanticSearch):
 
         all_chunks = []
         chunks_metadata = []
-        for document in self.documents:
+        for doc_index, document in enumerate(self.documents):
             text = document["description"]
             if text is None or text == "":
                 pass
@@ -118,7 +119,7 @@ class ChunkedSemanticSearch(SemanticSearch):
                 chunks = self._semantic_chunking(text, max_size_chunk, overlap)
                 all_chunks.extend(chunks)
                 for i, chunk in enumerate(chunks):
-                    chunks_metadata.append({"movie_idx":document["id"], "chunk_idx":i, "total_chunks":len(chunks)})
+                    chunks_metadata.append({"movie_idx":doc_index, "chunk_idx":i, "total_chunks":len(chunks)})
 
         self.chunk_embeddings = self.model.encode(all_chunks)
         self.chunk_metadata = chunks_metadata
@@ -142,3 +143,34 @@ class ChunkedSemanticSearch(SemanticSearch):
               self.chunk_metadata = json.load(f)["chunks"]
             return self.chunk_embeddings
         return self.build_chunk_embeddings(documents)
+
+    def search_chunks(self, query, limit=10):
+        query_embedding = self.generate_embedding(query)
+        chunks_scores = []
+        scores_map = {}
+
+        for idx, chunk_embedding in enumerate(self.chunk_embeddings):
+            chunk_id = self.chunk_metadata[idx]["chunk_idx"]
+            movie_idx = self.chunk_metadata[idx]["movie_idx"]
+            cosine_sim = cosine_similarity(query_embedding, chunk_embedding)
+            chunks_scores.append({
+                "chunk_idx" : chunk_id,
+                "movie_idx" : movie_idx,
+                "score" : cosine_sim
+            })
+            if movie_idx not in scores_map or scores_map[movie_idx]["score"] < cosine_sim:
+                scores_map[movie_idx] = chunks_scores[-1]
+
+        sorted_scores = sorted(scores_map.values(), key=lambda item: item["score"], reverse=True)
+        results = []
+        for best_chunk in sorted_scores[:limit]:
+            movie_idx = best_chunk["movie_idx"]
+            doc = self.documents[movie_idx]
+            results.append({
+                "id": doc["id"],
+                "title": doc["title"],
+                "document": doc["description"][:100],
+                "score": round(best_chunk["score"], SCORE_PRECISION),
+                "metadata": doc.get("metadata", {})
+            })
+        return results

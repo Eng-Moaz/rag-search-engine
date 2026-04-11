@@ -44,16 +44,16 @@ class SemanticCliCommands:
             print(f"{i+1}. {result['title']} (score: {result['score']:.4f})")
             print(f"{result['description'][:100]}")
 
-    def chunk_command(self, text, chunk_size, overlap):
+    def chunk_command(self, text, chunk_size, overlap=0):
         words = text.split()
         step_size = chunk_size - overlap
         chunks = []
         for i in range(0,len(words),step_size):
            chunk_words = words[i:chunk_size+i]
-           if len(chunk_words) >= overlap:
-               break
            chunk = " ".join(chunk_words)
            chunks.append(chunk)
+           if i + chunk_size >= len(words):
+               break
 
         print(f"Chunking {len(text)} characters")
         for i, chunk in enumerate(chunks):
@@ -81,3 +81,12 @@ class SemanticCliCommands:
         chunked_semantic_search = ChunkedSemanticSearch()
         embeddings = chunked_semantic_search.load_or_create_chunk_embeddings(movies)
         print(f"Generated {len(embeddings)} chunked embeddings")
+
+    def search_chunked(self, query, limit=5,):
+        movies = load_movies()
+        chunked_semantic_search = ChunkedSemanticSearch()
+        embeddings = chunked_semantic_search.load_or_create_chunk_embeddings(movies)
+        results = chunked_semantic_search.search_chunks(query, limit)
+        for i, result in enumerate(results):
+            print(f"\n{i+1}. {result['title']} (score: {result['score']:.4f})")
+            print(f"   {result['document']}...")
