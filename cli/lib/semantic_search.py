@@ -90,8 +90,12 @@ class ChunkedSemanticSearch(SemanticSearch):
         self.metadata_path = CACHE_DIR / "chunk_metadata.json"
 
     def _semantic_chunking(self, text, max_size_chunk, overlap):
+        stripped_text = text.strip()
+        if not stripped_text:
+            return []
         pattern = r"(?<=[.!?])\s+"
-        sentences = re.split(pattern, text.strip())
+        sentences = re.split(pattern, stripped_text)
+        sentences = [sentence.strip() for sentence in sentences if len(sentence.strip())>0 ]
         step_size = max_size_chunk - overlap
         chunks = []
 
