@@ -16,3 +16,6 @@ wheels/
 # JetBrains IDE specific files
 .idea/
 *.iml
+
+# API Secrets
+.env
