@@ -113,7 +113,7 @@ class InvertedIndex:
         bm25 = self.get_bm25_tf(doc_id,term) * self.get_bm25_idf(term)
         return bm25
 
-    def bm25_search(self, query, limit=5) -> list[tuple]:
+    def bm25_search(self, query, limit=5) -> list[dict]:
         tokenized_query = remove_stopwords(tokenize(query))
         scores = defaultdict(float)
         for query_token in tokenized_query:
@@ -123,5 +123,5 @@ class InvertedIndex:
         sorted_docs = sorted(scores.items(), key = lambda item: item[1], reverse=True)
         retrieved = []
         for doc_id, score in sorted_docs[:limit]:
-            retrieved.append((doc_id, self.docmap[doc_id], score))
+            retrieved.append({"id":doc_id, "score":score, "document":self.docmap[doc_id]})
         return retrieved

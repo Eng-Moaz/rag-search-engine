@@ -12,3 +12,13 @@ class HybridCliCommands:
 
         for score in final:
             print(f"{score:.4f}")
+
+    def weighted_search(self, query, alpha, limit):
+        hybrid_search = HybridSearch()
+        results = hybrid_search.weighted_search(query, alpha, limit)
+
+        for i,result in enumerate(results):
+            print(f"""{i+1}. {result['title']}
+            Hybrid Score: {result['Hybrid']}
+            BM25: {result['BM25']}, Semantic: {result['Semantic']}
+            {result['description']}""")
