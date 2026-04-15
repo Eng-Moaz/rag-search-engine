@@ -22,3 +22,13 @@ class HybridCliCommands:
             Hybrid Score: {result['Hybrid']}
             BM25: {result['BM25']}, Semantic: {result['Semantic']}
             {result['description']}""")
+
+    def rrf_search(self, query, k, limit):
+        hybrid_search = HybridSearch()
+        results = hybrid_search.rrf_search(query, k, limit)
+
+        for i,result in enumerate(results):
+            print(f"""{i+1}. {result['title']}
+            RRF Score: {result['rrf']}
+            BM25 Rank: {result['BM25']}, Semantic Rank: {result['Semantic']}
+            {result['description']}""")

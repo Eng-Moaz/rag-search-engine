@@ -13,6 +13,10 @@ def main() -> None:
     weighted_search.add_argument("--alpha", type=float, help="alpha for the weighted-search formula", default=0.5)
     weighted_search.add_argument("--limit", type=int, help="limit for the returned results", default=5)
 
+    weighted_search = subparsers.add_parser("rrf-search", help="Performs a rrf-search")
+    weighted_search.add_argument("query", type=str, help="Query to be searched for")
+    weighted_search.add_argument("--k", type=float, help="K parameter for rrf control", default=60)
+    weighted_search.add_argument("--limit", type=int, help="limit for the returned results", default=5)
 
     args = parser.parse_args()
 
@@ -24,6 +28,10 @@ def main() -> None:
 
         case "weighted-search":
             CLI.weighted_search(args.query, args.alpha, args.limit)
+
+        case "rrf-search":
+            CLI.rrf_search(args.query, args.k, args.limit)
+
         case _:
             parser.print_help()
 

@@ -20,6 +20,9 @@ def normalize(scores):
 def hybrid_score(bm25_score, semantic_score, alpha=0.5):
     return alpha * bm25_score + (1 - alpha) * semantic_score
 
+def rrf_score(rank, k=60):
+    return 1 / (k + rank)
+
 class HybridSearch:
     def __init__(self):
         self.documents = load_movies()
@@ -77,4 +80,40 @@ class HybridSearch:
         return final_results[:limit]
 
     def rrf_search(self, query, k, limit=10):
-        raise NotImplementedError("RRF hybrid search is not implemented yet.")
+        results_bm25 = self._bm25_search(query, 500 * limit)
+        results_semantic = self.semantic_search.search_chunks(query, 500 * limit)
+
+        results_combined = defaultdict(lambda: {"BM25": 0.0, "Semantic": 0.0, "description": "", "title": ""})
+
+        for i, result in enumerate(results_bm25):
+            doc_id = result["id"]
+            results_combined[doc_id]["BM25"] = i+1
+            results_combined[doc_id]["description"] = result["document"].get("description", "")
+            results_combined[doc_id]["title"] = result["document"].get("title", "")
+
+        for i, result in enumerate(results_semantic):
+            doc_id = result["id"]
+            results_combined[doc_id]["Semantic"] = i+1
+            if not results_combined[doc_id]["description"]:
+                results_combined[doc_id]["description"] = result["document"]
+            if not results_combined[doc_id]["title"]:
+                results_combined[doc_id]["title"] = result["title"]
+
+        final_results = []
+        for doc_id, scores in results_combined.items():
+            bm25_rank = scores["BM25"]
+            semantic_rank = scores["Semantic"]
+            rrf_bm25 = rrf_score(bm25_rank, k) if bm25_rank != 0 else 0
+            rrf_semantic = rrf_score(semantic_rank, k) if semantic_rank != 0 else 0
+            rrf = rrf_bm25 + rrf_semantic
+            final_results.append({
+                "id": doc_id,
+                "title": scores["title"],
+                "rrf": rrf,
+                "BM25": scores["BM25"],
+                "Semantic": scores["Semantic"],
+                "description": scores["description"][:100]
+            })
+
+        final_results.sort(key=lambda x: x["rrf"], reverse=True)
+        return final_results[:limit]
