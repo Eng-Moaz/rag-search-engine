@@ -50,10 +50,36 @@ class HybridCliCommands:
                     """
         return self._call_model(prompt)
 
+    def _enhance_writing(self, query):
+        prompt = f"""Rewrite the user-provided movie search query below to be more specific and searchable.
+        
+                    Consider:
+                    - Common movie knowledge (famous actors, popular films)
+                    - Genre conventions (horror = scary, animation = cartoon)
+                    - Keep the rewritten query concise (under 10 words)
+                    - It should be a Google-style search query, specific enough to yield relevant results
+                    - Don't use boolean logic
+                    
+                    Examples:
+                    - "that bear movie where leo gets attacked" -> "The Revenant Leonardo DiCaprio bear attack"
+                    - "movie about bear in london with marmalade" -> "Paddington London marmalade"
+                    - "scary movie with bear from few years ago" -> "bear horror movie 2015-2020"
+                    
+                    If you cannot improve the query, output the original unchanged.
+                    Output only the rewritten query text, nothing else.
+                    
+                    User query: "{query}"
+                    """
+        return self._call_model(prompt)
+
     def rrf_search(self, query, k, limit, enhance):
         hybrid_search = HybridSearch()
         if enhance == "spell":
             enhanced = self._enhance_spelling(query)
+            print(f"Enhanced query ({enhance}): '{query}' -> '{enhanced}'\n")
+            query = enhanced
+        if enhance == "rewrite":
+            enhanced = self._enhance_writing(query)
             print(f"Enhanced query ({enhance}): '{query}' -> '{enhanced}'\n")
             query = enhanced
         results = hybrid_search.rrf_search(query, k, limit)
