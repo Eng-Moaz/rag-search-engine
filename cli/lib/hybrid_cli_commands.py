@@ -72,16 +72,38 @@ class HybridCliCommands:
                     """
         return self._call_model(prompt)
 
+    def _expand(self, query):
+        prompt = f"""Expand the user-provided movie search query below with related terms.
+
+                    Add synonyms and related concepts that might appear in movie descriptions.
+                    Keep expansions relevant and focused.
+                    Output only the additional terms; they will be appended to the original query.
+                    
+                    Examples:
+                    - "scary bear movie" -> "scary horror grizzly bear movie terrifying film"
+                    - "action movie with bear" -> "action thriller bear chase fight adventure"
+                    - "comedy with bear" -> "comedy funny bear humor lighthearted"
+                    
+                    User query: "{query}"
+                    """
+        return self._call_model(prompt)
+
     def rrf_search(self, query, k, limit, enhance):
         hybrid_search = HybridSearch()
-        if enhance == "spell":
-            enhanced = self._enhance_spelling(query)
-            print(f"Enhanced query ({enhance}): '{query}' -> '{enhanced}'\n")
-            query = enhanced
-        if enhance == "rewrite":
-            enhanced = self._enhance_writing(query)
-            print(f"Enhanced query ({enhance}): '{query}' -> '{enhanced}'\n")
-            query = enhanced
+        match enhance:
+            case "spell":
+                enhanced = self._enhance_spelling(query)
+                print(f"Enhanced query ({enhance}): '{query}' -> '{enhanced}'\n")
+                query = enhanced
+            case "rewrite":
+                enhanced = self._enhance_writing(query)
+                print(f"Enhanced query ({enhance}): '{query}' -> '{enhanced}'\n")
+                query = enhanced
+            case "expand":
+                enhanced = self._enhance_writing(query)
+                print(f"Enhanced query ({enhance}): '{query}' -> '{enhanced}'\n")
+                query = enhanced
+
         results = hybrid_search.rrf_search(query, k, limit)
 
         for i,result in enumerate(results):
