@@ -17,6 +17,12 @@ def main() -> None:
     rrf_search.add_argument("query", type=str, help="Query to be searched for")
     rrf_search.add_argument("--k", type=float, help="K parameter for rrf control", default=60)
     rrf_search.add_argument("--limit", type=int, help="limit for the returned results", default=5)
+    rrf_search.add_argument(
+        "--enhance",
+        type=str,
+        choices=["spell", "rewrite"],
+        help="Query enhancement method",
+    )
 
     args = parser.parse_args()
 
@@ -30,7 +36,7 @@ def main() -> None:
             CLI.weighted_search(args.query, args.alpha, args.limit)
 
         case "rrf-search":
-            CLI.rrf_search(args.query, args.k, args.limit)
+            CLI.rrf_search(args.query, args.k, args.limit, args.enhance)
 
         case _:
             parser.print_help()

@@ -11,7 +11,7 @@ client = genai.Client(api_key=api_key)
 
 response = client.models.generate_content(
     model='gemini-2.5-flash', contents="You are a helpful assistant"
-)
+    )
 print(response.text)
 print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
 print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
