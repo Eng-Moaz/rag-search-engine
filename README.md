@@ -31,13 +31,16 @@ Both files are gitignored, so you will need to provide them yourself.
 cli/
   keyword_search_cli.py    # CLI entry point for keyword search
   semantic_search_cli.py   # CLI entry point for semantic search
+  hybrid_search_cli.py     # CLI entry point for hybrid search
   lib/
     search_utils.py        # Shared utilities (loading movies, stopwords)
     keyword_search.py      # Text cleaning, tokenization, stopword removal, stemming
     inverted_index.py      # Inverted index with TF, IDF, TF-IDF, and BM25
     semantic_search.py     # Embedding generation and cosine similarity search
-    keyword_cli_commands.py        # Command handlers for the keyword search CLI
+    hybrid_search.py       # Hybrid search utilities (normalization, weighted search, RRF)
+    keyword_cli_commands.py   # Command handlers for the keyword search CLI
     semantic_cli_commands.py  # Command handlers for the semantic search CLI
+    hybrid_cli_commands.py    # Command handlers for the hybrid search CLI
 cache/                     # Serialized index and embeddings (gitignored)
 data/                      # Movie dataset and stopwords (gitignored)
 ```
@@ -117,4 +120,36 @@ python cli/semantic_search_cli.py search "romantic comedy set in paris"
 
 # Semantic search with a custom result limit
 python cli/semantic_search_cli.py search "romantic comedy set in paris" --limit 10
+
+# Chunk a piece of text into fixed-size segments
+python cli/semantic_search_cli.py chunk "long text goes here" --chunk-size 100 --overlap 20
+
+# Semantically chunk a piece of text based on sequence
+python cli/semantic_search_cli.py semantic_chunk "long text goes here" --max-chunk-size 4
+
+# Embed all document chunks
+python cli/semantic_search_cli.py embed_chunks
+
+# Search for documents using chunk-level embeddings
+python cli/semantic_search_cli.py search_chunked "romantic comedy" --limit 5
+```
+
+## Hybrid Search
+
+The hybrid search combines results from both keyword and semantic searches to provide better overall retrieval, supporting operations like normalization, weighted average, and Reciprocal Rank Fusion (RRF).
+
+### CLI commands
+
+```bash
+# Normalize a list of scores
+python cli/hybrid_search_cli.py normalize 0.5 0.8 1.2
+
+# Weighted hybrid search (adjust keyword/semantic bias using --alpha, default 0.5)
+python cli/hybrid_search_cli.py weighted-search "epic adventure" --alpha 0.7 --limit 5
+
+# Reciprocal Rank Fusion (RRF) search (adjust ranking penalty using --k, default 60.0)
+python cli/hybrid_search_cli.py rrf-search "space movie" --k 60 --limit 5
+
+# RRF search with query enhancement (spell, rewrite, or expand)
+python cli/hybrid_search_cli.py rrf-search "space movie" --enhance rewrite
 ```
