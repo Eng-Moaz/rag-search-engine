@@ -112,7 +112,7 @@ class HybridSearch:
                 "rrf": rrf,
                 "BM25": scores["BM25"],
                 "Semantic": scores["Semantic"],
-                "description": scores["description"][:100]
+                "description": scores["description"]
             })
 
         final_results.sort(key=lambda x: x["rrf"], reverse=True)

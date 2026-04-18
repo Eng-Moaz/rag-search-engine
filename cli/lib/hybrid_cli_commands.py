@@ -2,6 +2,9 @@ from .hybrid_search import HybridSearch
 import os
 from dotenv import load_dotenv
 from google import genai
+from google.genai import types
+from groq import Groq
+import time
 
 
 class HybridCliCommands:
@@ -27,7 +30,7 @@ class HybridCliCommands:
             BM25: {result['BM25']}, Semantic: {result['Semantic']}
             {result['description']}""")
 
-    def _call_model(self, prompt):
+    def _call_model_gemini(self, prompt):
         load_dotenv()
         api_key = os.environ.get("GOOGLE_API_KEY")
         if not api_key:
@@ -36,9 +39,35 @@ class HybridCliCommands:
         client = genai.Client(api_key=api_key)
 
         response = client.models.generate_content(
-            model='gemini-2.5-flash', contents=prompt
+            model='gemini-2.5-flash', contents=prompt,
+            config=types.GenerateContentConfig(
+                safety_settings=[
+                    types.SafetySetting(
+                        category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                        threshold=types.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+                    ),
+                ]
+            )
         )
         return response.text
+
+    def _call_model_groq(self, prompt):
+        load_dotenv()
+        api_key = os.environ.get("GROQ_API_KEY")
+
+        if not api_key:
+            raise RuntimeError("GROQ_API_KEY not set")
+
+        client = Groq(api_key=api_key)
+
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+        )
+
+        return response.choices[0].message.content
 
     def _enhance_spelling(self, query):
         prompt = f"""Fix any spelling errors in the user-provided movie search query below.
@@ -48,7 +77,7 @@ class HybridCliCommands:
                     Output only the final query text, nothing else.
                     User query: "{query}"
                     """
-        return self._call_model(prompt)
+        return self._call_model_groq(prompt)
 
     def _enhance_writing(self, query):
         prompt = f"""Rewrite the user-provided movie search query below to be more specific and searchable.
@@ -70,7 +99,7 @@ class HybridCliCommands:
                     
                     User query: "{query}"
                     """
-        return self._call_model(prompt)
+        return self._call_model_groq(prompt)
 
     def _expand(self, query):
         prompt = f"""Expand the user-provided movie search query below with related terms.
@@ -86,9 +115,26 @@ class HybridCliCommands:
                     
                     User query: "{query}"
                     """
-        return self._call_model(prompt)
+        return self._call_model_groq(prompt)
 
-    def rrf_search(self, query, k, limit, enhance):
+    def _rerank_indv(self, query,doc):
+        prompt = f"""Rate how well this movie matches the search query.
+
+                    Query: "{query}"
+                    Movie: {doc.get("title", "")} - {doc.get("description", "")}
+                    
+                    Consider:
+                    - Direct relevance to query
+                    - User intent (what they're looking for)
+                    - Content appropriateness
+                    
+                    Rate 0-10 (10 = perfect match).
+                    Output ONLY the number in your response, no other text or explanation.
+                    
+                    Score:"""
+        return self._call_model_groq(prompt)
+
+    def rrf_search(self, query, k, limit, enhance, rerank):
         hybrid_search = HybridSearch()
         match enhance:
             case "spell":
@@ -100,15 +146,49 @@ class HybridCliCommands:
                 print(f"Enhanced query ({enhance}): '{query}' -> '{enhanced}'\n")
                 query = enhanced
             case "expand":
-                enhanced = self._enhance_writing(query)
+                enhanced = self._expand(query)
                 print(f"Enhanced query ({enhance}): '{query}' -> '{enhanced}'\n")
                 query = enhanced
 
-        results = hybrid_search.rrf_search(query, k, limit)
+        if rerank == "individual":
+            results = hybrid_search.rrf_search(query, k, limit*5)
+            for doc in results:
+                score = float(self._rerank_indv(query, doc).strip())
+                doc |= {"rerank_score": score}
+                time.sleep(3)
+            results.sort(key=lambda x: x["rerank_score"], reverse=True)
+            results = results[:limit]
+
+            for i, result in enumerate(results):
+                print(f"""{i + 1}. {result['title']}
+                Re-rank Score: {result["rerank_score"]}/10
+                RRF Score: {result['rrf']}
+                BM25 Rank: {result['BM25']}, Semantic Rank: {result['Semantic']}
+                {result['description'][:100]}""")
+
+        else:
+            results = hybrid_search.rrf_search(query, k, limit)
+
+            for i,result in enumerate(results):
+                print(f"""{i+1}. {result['title']}
+                RRF Score: {result['rrf']}
+                BM25 Rank: {result['BM25']}, Semantic Rank: {result['Semantic']}
+                {result['description'][:100]}""")
+
+    def individual_reranking(self,query,k,limit,rerank):
+        hybrid_search = HybridSearch()
+        results = hybrid_search.rrf_search(query, k, limit*5)
+
+        if rerank == "individual":
+            for doc in results:
+                score = self._rerank_indv(query,doc)
+                doc |= {"rerank_score":score}
+            results.sort(key=lambda x: x["rerank_score"], reverse=True)
+            results = results[:limit]
 
         for i,result in enumerate(results):
             print(f"""{i+1}. {result['title']}
+            Re-rank Score: {result["rerank_score"]}/10
             RRF Score: {result['rrf']}
             BM25 Rank: {result['BM25']}, Semantic Rank: {result['Semantic']}
-            {result['description']}""")
-
+            {result['description'][:100]}""")

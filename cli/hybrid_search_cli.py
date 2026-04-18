@@ -23,6 +23,13 @@ def main() -> None:
         choices=["spell", "rewrite", "expand"],
         help="Query enhancement method",
     )
+    rrf_search.add_argument(
+        "--rerank-method",
+        type=str,
+        choices=["individual"],
+        help="Technique for reranking"
+        )
+
 
     args = parser.parse_args()
 
@@ -36,7 +43,7 @@ def main() -> None:
             CLI.weighted_search(args.query, args.alpha, args.limit)
 
         case "rrf-search":
-            CLI.rrf_search(args.query, args.k, args.limit, args.enhance)
+            CLI.rrf_search(args.query, args.k, args.limit, args.enhance, args.rerank_method)
 
         case _:
             parser.print_help()
