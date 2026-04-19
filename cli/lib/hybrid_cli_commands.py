@@ -1,3 +1,5 @@
+import json
+
 from .hybrid_search import HybridSearch
 import os
 from dotenv import load_dotenv
@@ -134,6 +136,22 @@ class HybridCliCommands:
                     Score:"""
         return self._call_model_groq(prompt)
 
+    def _rerank_batch(self, query, docs):
+        prompt = f"""Rank the movies listed below by relevance to the following search query.
+
+                    Query: "{query}"
+                    
+                    Movies:
+                    {docs}
+                    
+                    Return ONLY the movie IDs in order of relevance (best match first). Return a valid JSON list, nothing else.
+                    
+                    For example:
+                    [75, 12, 34, 2, 1]
+                    
+                    Ranking:"""
+        return self._call_model_groq(prompt)
+
     def rrf_search(self, query, k, limit, enhance, rerank):
         hybrid_search = HybridSearch()
         match enhance:
@@ -162,6 +180,38 @@ class HybridCliCommands:
             for i, result in enumerate(results):
                 print(f"""{i + 1}. {result['title']}
                 Re-rank Score: {result["rerank_score"]}/10
+                RRF Score: {result['rrf']}
+                BM25 Rank: {result['BM25']}, Semantic Rank: {result['Semantic']}
+                {result['description'][:100]}""")
+
+        elif rerank == "batch":
+            results = hybrid_search.rrf_search(query, k, limit * 5)
+            doc_list_str = ""
+            for i, result in enumerate(results):
+                doc_list_str += f"""
+                    {i+1}. ID : {result['id']}
+                           Title : {result['title']}
+                           Description : {result['description'][:200]}
+                    \n\n
+                    """
+            scores = self._rerank_batch(query,doc_list_str)
+            ranked_ids = json.loads(scores)
+
+            results_by_id = {str(doc['id']): doc for doc in results}
+            reranked_results = []
+
+            for rank_pos, doc_id in enumerate(ranked_ids):
+                doc_id_str = str(doc_id)
+                if doc_id_str in results_by_id:
+                    doc = results_by_id.pop(doc_id_str)
+                    doc["rerank_score"] = rank_pos + 1
+                    reranked_results.append(doc)
+
+            results = reranked_results[:limit]
+
+            for i, result in enumerate(results):
+                print(f"""{i + 1}. {result['title']}
+                Re-rank Rank: {result.get("rerank_score", 0)}
                 RRF Score: {result['rrf']}
                 BM25 Rank: {result['BM25']}, Semantic Rank: {result['Semantic']}
                 {result['description'][:100]}""")
