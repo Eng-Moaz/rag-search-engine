@@ -14,6 +14,9 @@ class EvaluationCliCommands:
     def _recall(self, relevant, total_relevant):
         return relevant / total_relevant
 
+    def _f1(self, precision, recall):
+        return 2 * (precision * recall) / (precision + recall)
+
     def precision_at_k(self, limit):
         print(f"k = {K}")
 
@@ -28,11 +31,13 @@ class EvaluationCliCommands:
                     relevant_num += 1
             precision = self._precision(relevant_num, len(retrieved))
             recall = self._recall(relevant_num, len(relevant_docs))
+            f1 = self._f1(precision, recall)
 
             print(f"""
                 - Query: {query}
                     - Precision@{limit}: {precision:.4f}
                     - Recall@{limit}: {recall:.4f}
+                    - F1 Score: {f1:.4f}
                     - Retrieved: {retrieved}
                     - Relevant: {relevant_docs}
             """)
