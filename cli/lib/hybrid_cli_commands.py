@@ -1,5 +1,5 @@
 import json
-
+from sentence_transformers import CrossEncoder, cross_encoder
 from .hybrid_search import HybridSearch
 import os
 from dotenv import load_dotenv
@@ -152,8 +152,7 @@ class HybridCliCommands:
                     Ranking:"""
         return self._call_model_groq(prompt)
 
-    def rrf_search(self, query, k, limit, enhance, rerank):
-        hybrid_search = HybridSearch()
+    def _enhance_query_handling(self,query ,enhance):
         match enhance:
             case "spell":
                 enhanced = self._enhance_spelling(query)
@@ -167,63 +166,96 @@ class HybridCliCommands:
                 enhanced = self._expand(query)
                 print(f"Enhanced query ({enhance}): '{query}' -> '{enhanced}'\n")
                 query = enhanced
+        return query
 
-        if rerank == "individual":
-            results = hybrid_search.rrf_search(query, k, limit*5)
-            for doc in results:
-                score = float(self._rerank_indv(query, doc).strip())
-                doc |= {"rerank_score": score}
-                time.sleep(3)
-            results.sort(key=lambda x: x["rerank_score"], reverse=True)
-            results = results[:limit]
+    def _indv_rerank(self, query, results, limit):
+        for doc in results:
+            score = float(self._rerank_indv(query, doc).strip())
+            doc |= {"rerank_score": score}
+            time.sleep(3)
+        results.sort(key=lambda x: x["rerank_score"], reverse=True)
+        results = results[:limit]
 
-            for i, result in enumerate(results):
-                print(f"""{i + 1}. {result['title']}
-                Re-rank Score: {result["rerank_score"]}/10
-                RRF Score: {result['rrf']}
-                BM25 Rank: {result['BM25']}, Semantic Rank: {result['Semantic']}
-                {result['description'][:100]}""")
+        for i, result in enumerate(results):
+            print(f"""{i + 1}. {result['title']}
+            Re-rank Score: {result["rerank_score"]}/10
+            RRF Score: {result['rrf']}
+            BM25 Rank: {result['BM25']}, Semantic Rank: {result['Semantic']}
+            {result['description'][:100]}""")
 
-        elif rerank == "batch":
-            results = hybrid_search.rrf_search(query, k, limit * 5)
-            doc_list_str = ""
-            for i, result in enumerate(results):
-                doc_list_str += f"""
-                    {i+1}. ID : {result['id']}
-                           Title : {result['title']}
-                           Description : {result['description'][:200]}
-                    \n\n
-                    """
-            scores = self._rerank_batch(query,doc_list_str)
-            ranked_ids = json.loads(scores)
+    def _batch_rerank(self, query, results, limit):
+        doc_list_str = ""
+        for i, result in enumerate(results):
+            doc_list_str += f"""
+                            {i + 1}. ID : {result['id']}
+                                   Title : {result['title']}
+                                   Description : {result['description'][:200]}
+                            \n\n
+                            """
+        scores = self._rerank_batch(query, doc_list_str)
+        ranked_ids = json.loads(scores)
 
-            results_by_id = {str(doc['id']): doc for doc in results}
-            reranked_results = []
+        results_by_id = {str(doc['id']): doc for doc in results}
+        reranked_results = []
 
-            for rank_pos, doc_id in enumerate(ranked_ids):
-                doc_id_str = str(doc_id)
-                if doc_id_str in results_by_id:
-                    doc = results_by_id.pop(doc_id_str)
-                    doc["rerank_score"] = rank_pos + 1
-                    reranked_results.append(doc)
+        for rank_pos, doc_id in enumerate(ranked_ids):
+            doc_id_str = str(doc_id)
+            if doc_id_str in results_by_id:
+                doc = results_by_id.pop(doc_id_str)
+                doc["rerank_score"] = rank_pos + 1
+                reranked_results.append(doc)
 
-            results = reranked_results[:limit]
+        results = reranked_results[:limit]
 
-            for i, result in enumerate(results):
-                print(f"""{i + 1}. {result['title']}
-                Re-rank Rank: {result.get("rerank_score", 0)}
-                RRF Score: {result['rrf']}
-                BM25 Rank: {result['BM25']}, Semantic Rank: {result['Semantic']}
-                {result['description'][:100]}""")
+        for i, result in enumerate(results):
+            print(f"""{i + 1}. {result['title']}
+                        Re-rank Rank: {result.get("rerank_score", 0)}
+                        RRF Score: {result['rrf']}
+                        BM25 Rank: {result['BM25']}, Semantic Rank: {result['Semantic']}
+                        {result['description'][:100]}""")
 
-        else:
-            results = hybrid_search.rrf_search(query, k, limit)
+    def _cross_encoder_rerank(self, query, results, limit):
+        query_doc_pairs = [[query, f"{result.get('title','')} - {result.get('description', '')}"] for result in results]
+        cross_encoder_model = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L2-v2")
+        scores = cross_encoder_model.predict(query_doc_pairs)
 
-            for i,result in enumerate(results):
-                print(f"""{i+1}. {result['title']}
-                RRF Score: {result['rrf']}
-                BM25 Rank: {result['BM25']}, Semantic Rank: {result['Semantic']}
-                {result['description'][:100]}""")
+        for score, result in zip(scores, results):
+            result |= {"cross_encoder_score": score}
+
+        results.sort(key=lambda x: x["cross_encoder_score"], reverse=True)
+        results = results[:limit]
+
+        for i, result in enumerate(results):
+            print(f"""{i + 1}. {result['title']}
+                        Cross Encoder Score: {result['cross_encoder_score']}
+                        RRF Score: {result['rrf']}
+                        BM25 Rank: {result['BM25']}, Semantic Rank: {result['Semantic']}
+                        {result['description'][:100]}""")
+
+
+    def rrf_search(self, query, k, limit, enhance, rerank):
+        hybrid_search = HybridSearch()
+        query = self._enhance_query_handling(query, enhance)
+
+        fetch_limit = limit * 5 if rerank in ["individual", "batch", "cross_encoder"] else limit
+        results = hybrid_search.rrf_search(query, k, fetch_limit)
+
+        match rerank:
+            case "individual":
+                self._indv_rerank(query, results, limit)
+
+            case "batch":
+                self._batch_rerank(query, results, limit)
+
+            case "cross_encoder":
+                self._cross_encoder_rerank(query, results, limit)
+
+            case _:
+                for i,result in enumerate(results):
+                    print(f"""{i+1}. {result['title']}
+                    RRF Score: {result['rrf']}
+                    BM25 Rank: {result['BM25']}, Semantic Rank: {result['Semantic']}
+                    {result['description'][:100]}""")
 
     def individual_reranking(self,query,k,limit,rerank):
         hybrid_search = HybridSearch()

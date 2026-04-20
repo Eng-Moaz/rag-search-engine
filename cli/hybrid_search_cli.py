@@ -26,7 +26,7 @@ def main() -> None:
     rrf_search.add_argument(
         "--rerank-method",
         type=str,
-        choices=["individual", "batch"],
+        choices=["individual", "batch", "cross_encoder"],
         help="Technique for reranking"
         )
 
