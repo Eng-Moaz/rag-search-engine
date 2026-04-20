@@ -7,6 +7,21 @@ from google import genai
 from google.genai import types
 from groq import Groq
 import time
+from datetime import datetime
+import numpy as np
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+LOGS = os.path.join(PROJECT_ROOT,"logs")
+
+class MLTypeEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super().default(obj)
 
 
 class HybridCliCommands:
@@ -174,14 +189,15 @@ class HybridCliCommands:
             doc |= {"rerank_score": score}
             time.sleep(3)
         results.sort(key=lambda x: x["rerank_score"], reverse=True)
-        results = results[:limit]
+        final_results = results[:limit]
 
-        for i, result in enumerate(results):
+        for i, result in enumerate(final_results):
             print(f"""{i + 1}. {result['title']}
             Re-rank Score: {result["rerank_score"]}/10
             RRF Score: {result['rrf']}
             BM25 Rank: {result['BM25']}, Semantic Rank: {result['Semantic']}
             {result['description'][:100]}""")
+        return results
 
     def _batch_rerank(self, query, results, limit):
         doc_list_str = ""
@@ -205,14 +221,15 @@ class HybridCliCommands:
                 doc["rerank_score"] = rank_pos + 1
                 reranked_results.append(doc)
 
-        results = reranked_results[:limit]
+        final_results = reranked_results[:limit]
 
-        for i, result in enumerate(results):
+        for i, result in enumerate(final_results):
             print(f"""{i + 1}. {result['title']}
                         Re-rank Rank: {result.get("rerank_score", 0)}
                         RRF Score: {result['rrf']}
                         BM25 Rank: {result['BM25']}, Semantic Rank: {result['Semantic']}
                         {result['description'][:100]}""")
+        return results
 
     def _cross_encoder_rerank(self, query, results, limit):
         query_doc_pairs = [[query, f"{result.get('title','')} - {result.get('description', '')}"] for result in results]
@@ -223,7 +240,7 @@ class HybridCliCommands:
             result |= {"cross_encoder_score": score}
 
         results.sort(key=lambda x: x["cross_encoder_score"], reverse=True)
-        results = results[:limit]
+        final_results = results[:limit]
 
         for i, result in enumerate(results):
             print(f"""{i + 1}. {result['title']}
@@ -231,24 +248,33 @@ class HybridCliCommands:
                         RRF Score: {result['rrf']}
                         BM25 Rank: {result['BM25']}, Semantic Rank: {result['Semantic']}
                         {result['description'][:100]}""")
+        return results
 
 
     def rrf_search(self, query, k, limit, enhance, rerank):
+        logs = {}
+
+        logs["query"] = query
+        logs["enhancing_method"] = enhance if enhance else "None"
+        logs["reranking_method"] = rerank if rerank else "None"
+
         hybrid_search = HybridSearch()
         query = self._enhance_query_handling(query, enhance)
+        logs["enhanced_query"] = query
 
         fetch_limit = limit * 5 if rerank in ["individual", "batch", "cross_encoder"] else limit
         results = hybrid_search.rrf_search(query, k, fetch_limit)
+        logs["rrf_results"] = results
 
         match rerank:
             case "individual":
-                self._indv_rerank(query, results, limit)
+                results = self._indv_rerank(query, results, limit)
 
             case "batch":
-                self._batch_rerank(query, results, limit)
+                results = self._batch_rerank(query, results, limit)
 
             case "cross_encoder":
-                self._cross_encoder_rerank(query, results, limit)
+                results = self._cross_encoder_rerank(query, results, limit)
 
             case _:
                 for i,result in enumerate(results):
@@ -256,6 +282,17 @@ class HybridCliCommands:
                     RRF Score: {result['rrf']}
                     BM25 Rank: {result['BM25']}, Semantic Rank: {result['Semantic']}
                     {result['description'][:100]}""")
+
+        logs["reranked_results"] = results
+        logs["reranked_final_results"] = results[:limit]
+
+        os.makedirs(LOGS, exist_ok=True)
+        logs_name = f"log_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json"
+
+        with open(os.path.join(LOGS, logs_name), "w") as file:
+            json.dump(logs, file, indent=4, cls=MLTypeEncoder)
+        print(f"Logs saved to {logs_name}")
+
 
     def individual_reranking(self,query,k,limit,rerank):
         hybrid_search = HybridSearch()
