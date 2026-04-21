@@ -23,6 +23,12 @@ def main():
     citations_parser.add_argument("query", type=str, help="Search query for RAG")
     citations_parser.add_argument("--limit", type=int, default=5, help="limit for the retrieved docs")
 
+    question_parser = subparsers.add_parser(
+        "question", help="Perform RAG (search + answers the question with the relevant retrieved context)"
+    )
+    question_parser.add_argument("query", type=str, help="Search query for RAG")
+    question_parser.add_argument("--limit", type=int, default=5, help="limit for the retrieved docs")
+
 
     args = parser.parse_args()
 
@@ -38,6 +44,9 @@ def main():
 
         case "citations":
             CLI.citation(args.query, args.limit)
+
+        case "question":
+            CLI.question(args.query, args.limit)
             
         case _:
             parser.print_help()

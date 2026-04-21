@@ -101,3 +101,35 @@ class AugmentedCliCommands:
             LLM Answer:
             {model_answer}
             """)
+
+    def question(self, query, limit):
+        results = self.hybrid_search.rrf_search(query, limit=limit, k=60)
+        docs = [
+            f"{i + 1}. Title: {doc.get('title', 'N/A')} | Description: {doc.get('description', 'N/A')}"
+            for i, doc in enumerate(results)
+        ]
+
+        prompt = f"""Answer the user's question based on the provided movies that are available on Hoopla, a streaming service.
+
+                    Question: {query}
+            
+                    Documents:
+                    {chr(10).join(docs)}
+            
+                    Instructions:
+                    - Answer questions directly and concisely
+                    - Be casual and conversational
+                    - Don't be cringe or hype-y
+                    - Talk like a normal person would in a chat conversation
+            
+                    Answer:"""
+
+        model_answer = self.hybrid_commands._call_model_groq(prompt)
+
+        print(f"""
+                    Search Results:
+                    {'\n-'.join(docs)}
+
+                    Answer:
+                    {model_answer}
+                    """)
