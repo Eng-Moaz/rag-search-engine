@@ -27,7 +27,7 @@ def main():
             CLI.augmented_gen(query)
 
         case "summarize":
-
+            CLI.summarize(args.query, args.limit)
 
         case _:
             parser.print_help()
