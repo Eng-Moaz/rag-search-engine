@@ -29,6 +29,11 @@ def main() -> None:
         choices=["individual", "batch", "cross_encoder"],
         help="Technique for reranking"
         )
+    rrf_search.add_argument(
+        "--evaluate",
+        action="store_true",
+        help="Evaluate the results to the given query",
+    )
 
 
     args = parser.parse_args()
@@ -43,7 +48,7 @@ def main() -> None:
             CLI.weighted_search(args.query, args.alpha, args.limit)
 
         case "rrf-search":
-            CLI.rrf_search(args.query, args.k, args.limit, args.enhance, args.rerank_method)
+            CLI.rrf_search(args.query, args.k, args.limit, args.enhance, args.rerank_method, args.evaluate)
 
         case _:
             parser.print_help()

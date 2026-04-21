@@ -167,6 +167,33 @@ class HybridCliCommands:
                     Ranking:"""
         return self._call_model_groq(prompt)
 
+    def _evaluation(self,query, results):
+
+        formatted_results = [
+            f"{i + 1}. Title: {doc.get('title', 'N/A')} | Description: {doc.get('description', 'N/A')[:200]}"
+            for i, doc in enumerate(results)
+        ]
+
+        prompt = f"""Rate how relevant each result is to this query on a 0-3 scale:
+
+                    Query: "{query}"
+                    
+                    Results:
+                    {chr(10).join(formatted_results)}
+                    
+                    Scale:
+                    - 3: Highly relevant
+                    - 2: Relevant
+                    - 1: Marginally relevant
+                    - 0: Not relevant
+                    
+                    Do NOT give any numbers other than 0, 1, 2, or 3.
+                    
+                    Return ONLY the scores in the same order you were given the documents. Return a valid JSON list, nothing else. For example:
+                    
+                    [2, 0, 3, 2, 0, 1]"""
+        return self._call_model_groq(prompt)
+
     def _enhance_query_handling(self,query ,enhance):
         match enhance:
             case "spell":
@@ -242,7 +269,7 @@ class HybridCliCommands:
         results.sort(key=lambda x: x["cross_encoder_score"], reverse=True)
         final_results = results[:limit]
 
-        for i, result in enumerate(results):
+        for i, result in enumerate(final_results):
             print(f"""{i + 1}. {result['title']}
                         Cross Encoder Score: {result['cross_encoder_score']}
                         RRF Score: {result['rrf']}
@@ -250,8 +277,7 @@ class HybridCliCommands:
                         {result['description'][:100]}""")
         return results
 
-
-    def rrf_search(self, query, k, limit, enhance, rerank):
+    def rrf_search(self, query, k, limit, enhance, rerank, evaluate):
         logs = {}
 
         logs["query"] = query
@@ -282,6 +308,15 @@ class HybridCliCommands:
                     RRF Score: {result['rrf']}
                     BM25 Rank: {result['BM25']}, Semantic Rank: {result['Semantic']}
                     {result['description'][:100]}""")
+
+        if evaluate:
+            print("--------------LLM Evaluation-----------------")
+            evaluation_scores = self._evaluation(query, results[:limit])
+            scores = json.loads(evaluation_scores)
+            for score, result in zip(scores, results):
+                print(f"{result['title']}: {score}/3")
+
+
 
         logs["reranked_results"] = results
         logs["reranked_final_results"] = results[:limit]
