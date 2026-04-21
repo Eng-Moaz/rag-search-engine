@@ -17,6 +17,13 @@ def main():
     summarize_parser.add_argument("query", type=str, help="Search query for RAG")
     summarize_parser.add_argument("--limit", type=int, default=5, help="limit for the retrieved docs")
 
+    citations_parser = subparsers.add_parser(
+        "citations", help="Perform RAG (search + cites the retrieved docs in the answer)"
+    )
+    citations_parser.add_argument("query", type=str, help="Search query for RAG")
+    citations_parser.add_argument("--limit", type=int, default=5, help="limit for the retrieved docs")
+
+
     args = parser.parse_args()
 
     CLI = AugmentedCliCommands()
@@ -29,6 +36,9 @@ def main():
         case "summarize":
             CLI.summarize(args.query, args.limit)
 
+        case "citations":
+            CLI.citation(args.query, args.limit)
+            
         case _:
             parser.print_help()
 

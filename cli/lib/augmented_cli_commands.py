@@ -65,3 +65,39 @@ class AugmentedCliCommands:
             LLM Summary:
             {model_answer}
             """)
+
+    def citation(self, query, limit):
+        results = self.hybrid_search.rrf_search(query, limit=limit, k=60)
+        docs = [
+            f"{i + 1}. Title: {doc.get('title', 'N/A')} | Description: {doc.get('description', 'N/A')[:200]}"
+            for i, doc in enumerate(results)
+        ]
+
+        prompt = f"""Answer the query below and give information based on the provided documents.
+
+                    The answer should be tailored to users of Hoopla, a movie streaming service.
+                    If not enough information is available to provide a good answer, say so, but give the best answer possible while citing the sources available.
+                    
+                    Query: {query}
+                    
+                    Documents:
+                    {chr(10).join(docs)}
+                    
+                    Instructions:
+                    - Provide a comprehensive answer that addresses the query
+                    - Cite sources in the format [1], [2], etc. when referencing information
+                    - If sources disagree, mention the different viewpoints
+                    - If the answer isn't in the provided documents, say "I don't have enough information"
+                    - Be direct and informative
+                    
+                    Answer:"""
+
+        model_answer = self.hybrid_commands._call_model_groq(prompt)
+
+        print(f"""
+            Search Results:
+            {'\n-'.join(docs)}
+
+            LLM Answer:
+            {model_answer}
+            """)
